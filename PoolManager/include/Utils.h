@@ -10,7 +10,8 @@
 #include <algorithm>
 #include <string_view>
 
-// hash string, don't lowercase
+
+ // hash string, don't lowercase
 inline constexpr uint32_t HashRageString(const char* string)
 {
 	uint32_t hash = 0;

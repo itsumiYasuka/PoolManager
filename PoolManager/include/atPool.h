@@ -5,6 +5,9 @@
 class atPoolBase
 {
 protected:
+#if IS_RDR3
+	int8_t* m_unk;
+#endif
 	char* m_data;
 	int8_t* m_flags;
 	uint32_t m_count;
@@ -53,10 +56,10 @@ public:
 
 	size_t GetCount()
 	{
-		size_t count = std::count_if(m_flags, m_flags + m_count, [] (int8_t flag)
-		{
-			return (flag >= 0);
-		});
+		size_t count = std::count_if(m_flags, m_flags + m_count, [](int8_t flag)
+			{
+				return (flag >= 0);
+			});
 
 		return count;
 	}
@@ -64,6 +67,11 @@ public:
 	size_t GetSize()
 	{
 		return m_count;
+	}
+
+	size_t GetEntrySize()
+	{
+		return m_entrySize;
 	}
 
 	void Clear()

@@ -29,13 +29,7 @@
     <ClInclude Include="include\Utils.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="include\sigslot.h">
-      <Filter>Include</Filter>
-    </ClInclude>
     <ClInclude Include="include\Hooking.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="include\gta_vtables.h">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="include\dllmain.h">

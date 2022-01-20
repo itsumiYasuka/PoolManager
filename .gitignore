@@ -3,3 +3,9 @@
 ################################################################################
 
 /.vs
+/PoolManager/dependencies/patterns
+/PoolManager/build/tmp/Release
+/PoolManager/dependencies/minhook/include
+/PoolManager/dependencies/minhook/src/hde
+/PoolManager/dependencies/minhook/src
+/PoolManager/include/jitasm.h
