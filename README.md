@@ -2,7 +2,7 @@
 PoolManager.asi will attempt to identify the cause of a crash in RDR 2 if the crash is related to a memory pool within gameconfig.xml
 
 # Support for RDR2 is WIP
-currently game doesn't start with 
+currently game doesn't start while using this
 
 # Currently crashes the game for some reason
 possible rdr2 support but the game crashes at startup atm need to fiugre out what's problem and fix it x)
