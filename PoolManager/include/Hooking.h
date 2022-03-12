@@ -8,27 +8,44 @@
 #pragma once
 
 #include <stdint.h>
-
-#ifndef IS_FXSERVER
-#define ASSERT(x) __noop
-#include <jitasm.h>
-
+#include <type_traits>
 #include <memory>
 #include <functional>
+#include "jitasm.h"
+
 
 namespace hook
 {
+	uintptr_t FindPatternEx(const char* pattern, const char* mask, const char* modulename);
+
 	template<typename AddressType>
 	inline void nop(AddressType address, size_t length)
 	{
-		memset((void*)address, 0x90, length);
-	}
 
+		DWORD oldProtect;
+		VirtualProtect((void*)address, length, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+		memset((void*)address, 0x90, length);
+
+		VirtualProtect((void*)address, length, oldProtect, &oldProtect);
+	}
 	template<typename ValueType, typename AddressType>
 	inline void put(AddressType address, ValueType value)
 	{
-		//adjust_base(address); don't need this
 		memcpy((void*)address, &value, sizeof(value));
+	}
+
+	template <typename ValueType, typename AddressType>
+	inline void putVP(AddressType address, ValueType value)
+	{
+
+
+		DWORD oldProtect;
+		VirtualProtect((void*)address, sizeof(value), PAGE_EXECUTE_READWRITE, &oldProtect);
+
+		memcpy((void*)address, &value, sizeof(value));
+
+		VirtualProtect((void*)address, sizeof(value), oldProtect, &oldProtect);
 	}
 
 	void* AllocateFunctionStub(void* origin, void* function, int type);
@@ -51,7 +68,7 @@ namespace hook
 		put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)address - 5);
 	}
 
-	template<typename T, typename AT>
+	template <typename T, typename AT>
 	inline void call(AT address, T func)
 	{
 		call_reg<0>(address, func);
@@ -65,6 +82,7 @@ namespace hook
 
 		return (T)target;
 	}
+
 
 	template<typename TTarget, typename T>
 	inline void set_call(TTarget* target, T address)
@@ -80,7 +98,7 @@ namespace hook
 			return (void*)get_member(function);
 		}
 	};
-#endif
+
 }
 
 #include "Hooking.Patterns.h"

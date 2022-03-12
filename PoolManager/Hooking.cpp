@@ -1,6 +1,6 @@
 #include "Hooking.h"
-#include <Windows.h>
-
+#include <Psapi.h>
+//credits to @alexguirre for helping with this https://github.com/alexguirre
 namespace hook
 {
 	LPVOID FindPrevFreeRegion(LPVOID pAddress, LPVOID pMinAddr, DWORD dwAllocationGranularity)
@@ -42,6 +42,9 @@ namespace hook
 	{
 		static void* g_currentStub = nullptr;
 
+                //credits @alexguirre for help and explanation https://github.com/alexguirre
+		static void* g_stubMemoryStart = nullptr;
+
 		if (!g_currentStub)
 		{
 			ULONG_PTR minAddr;
@@ -66,9 +69,10 @@ namespace hook
 				pAlloc = FindPrevFreeRegion(pAlloc, (LPVOID)minAddr, si.dwAllocationGranularity);
 				if (pAlloc == NULL)
 					break;
-
+				
 				g_currentStub = VirtualAlloc(pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-				if (g_currentStub != NULL)
+				if (g_currentStub != NULL) //again thanks to alexguirre for pointing out
+				g_stubMemoryStart = g_currentStub;
 					break;
 			}
 		}
@@ -88,6 +92,42 @@ namespace hook
 
 		g_currentStub = (void*)((uint64_t)g_currentStub + 20);
 
+	    // the page is full, allocate a new page next time a stub is needed  
+		if (((uint64_t)g_currentStub - (uint64_t)g_stubMemoryStart) >= (MEMORY_BLOCK_SIZE - 20))
+			g_currentStub = nullptr;
+
 		return code;
 	}
+		uintptr_t FindPatternEx(const char* pattern, const char* mask, const char* address, size_t size)
+		{
+			const char* addressEnd = address + size;
+			const size_t maskLength = static_cast<size_t>(strlen(mask) - 1);
+
+			for (size_t i = 0; address < addressEnd; address++)
+			{
+				if (*address == pattern[i] || mask[i] == '?')
+				{
+					if (mask[i + 1] == '\0')
+					{
+						return reinterpret_cast<uintptr_t>(address) - maskLength;
+					}
+
+					i++;
+				}
+				else
+				{
+					i = 0;
+				}
+			}
+
+			return 0;
+		}
+
+		uintptr_t FindPatternEx(const char* pattern, const char* mask, const char* modulename)
+		{
+			MODULEINFO module = {};
+			GetModuleInformation(GetCurrentProcess(), GetModuleHandle(modulename), &module, sizeof(MODULEINFO));
+
+			return FindPatternEx(pattern, mask, (const char*)module.lpBaseOfDll, module.SizeOfImage);
+		}
 }

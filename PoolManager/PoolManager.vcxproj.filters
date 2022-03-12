@@ -2,22 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="poolmanager.cpp" />
-    <ClCompile Include="dependencies\minhook\src\hde\hde32.c">
-      <Filter>Dependencies\minhook</Filter>
-    </ClCompile>
-    <ClCompile Include="dependencies\minhook\src\hde\hde64.c">
-      <Filter>Dependencies\minhook</Filter>
-    </ClCompile>
-    <ClCompile Include="dependencies\minhook\src\buffer.c">
-      <Filter>Dependencies\minhook</Filter>
-    </ClCompile>
-    <ClCompile Include="dependencies\minhook\src\hook.c">
-      <Filter>Dependencies\minhook</Filter>
-    </ClCompile>
-    <ClCompile Include="dependencies\minhook\src\trampoline.c">
-      <Filter>Dependencies\minhook</Filter>
-    </ClCompile>
-    <ClCompile Include="dependencies\patterns\Hooking.Patterns.cpp">
+    <ClCompile Include="Dependencies\patterns\Hooking.Patterns.cpp">
       <Filter>Dependencies\patterns</Filter>
     </ClCompile>
     <ClCompile Include="Hooking.cpp" />
@@ -32,9 +17,13 @@
     <ClInclude Include="include\Hooking.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="include\dllmain.h">
+    <ClInclude Include="Dependencies\patterns\Hooking.Patterns.h">
+      <Filter>Dependencies\patterns</Filter>
+    </ClInclude>
+    <ClInclude Include="include\jitasm.h">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="include\RDR3VtableList.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Include">
@@ -43,14 +32,11 @@
     <Filter Include="Dependencies">
       <UniqueIdentifier>{d72e835f-f483-4051-9b63-dc51ecab1b5c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dependencies\minhook">
-      <UniqueIdentifier>{b7e3044e-7f43-47be-8597-74978e7db899}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dependencies\patterns">
       <UniqueIdentifier>{267ab640-5f3e-4ea1-ac09-0a1b4ed70ed3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="PoolManager.ini" />
+    <None Include="PoolManager.toml" />
   </ItemGroup>
 </Project>

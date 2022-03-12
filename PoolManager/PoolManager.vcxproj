@@ -7,25 +7,22 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dependencies\minhook\src\buffer.c" />
-    <ClCompile Include="dependencies\minhook\src\hde\hde32.c" />
-    <ClCompile Include="dependencies\minhook\src\hde\hde64.c" />
-    <ClCompile Include="dependencies\minhook\src\hook.c" />
-    <ClCompile Include="dependencies\minhook\src\trampoline.c" />
-    <ClCompile Include="dependencies\patterns\Hooking.Patterns.cpp" />
+    <ClCompile Include="Dependencies\patterns\Hooking.Patterns.cpp" />
     <ClCompile Include="Hooking.cpp" />
     <ClCompile Include="poolmanager.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)include;..\PoolManager\dependencies\spdlog\include;..\PoolManager\dependencies\patterns;..\PoolManager\dependencies\minhook\include;..\PoolManager\dependencies\jitasm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Dependencies\patterns\Hooking.Patterns.h" />
     <ClInclude Include="include\atPool.h" />
-    <ClInclude Include="include\dllmain.h" />
     <ClInclude Include="include\Hooking.h" />
+    <ClInclude Include="include\jitasm.h" />
+    <ClInclude Include="include\RDR3VtableList.h" />
     <ClInclude Include="include\Utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="PoolManager.ini">
+    <None Include="PoolManager.toml">
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
@@ -60,15 +57,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;NativeTrainer_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;dependencies\patterns;dependencies\minhook\include;dependencies\jitasm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;dependencies\patterns;dependencies\minhook\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DebugInformationFormat>None</DebugInformationFormat>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -76,8 +72,11 @@
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <StringPooling>true</StringPooling>
-      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <SDLCheck>false</SDLCheck>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -89,6 +88,7 @@
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AssemblyDebug>false</AssemblyDebug>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
