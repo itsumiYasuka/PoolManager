@@ -847,11 +847,21 @@ void InitializeMod()
 	// no-op assertation to ensure our pool crash reporting is used instead
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
 
-	//find external pattern form inside another module xD
-	uintptr_t location = hook::FindPatternEx("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x41", "xxxxxxxxxxxxxxxx", "ScriptHookRDR2.dll"); //0x00000180005F70 @SHRDR2 as of v1.0.1436.25, hook inside ScriptHookRDR2 as a Workaround
-	void* address = reinterpret_cast<void*>(location); //MinHook only pointers x)
+	//check if ScriptHookRDR2.dll is installed.
+	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different pattern to avoid double hook
+	{
+		//find external pattern form inside another module xD
+		uintptr_t location = hook::FindPatternEx("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x41", "xxxxxxxxxxxxxxxx", "ScriptHookRDR2.dll"); //0x00000180005F70 @SHRDR2 as of v1.0.1436.25, hook inside ScriptHookRDR2 as a Workaround
+		void* address = reinterpret_cast<void*>(location); //MinHook only  takespointers x)
 
-	MH_CreateHook(address, GetSizeOfPool, (void**)&g_origSizeOfPool); //Yes I'm Hooking the ScriptHookRDR2 here
+		MH_CreateHook(address, GetSizeOfPool, (void**)&g_origSizeOfPool); //Yes I'm Hooking the ScriptHookRDR2 detour function here
+	}
+	//ScriptHookRDR2.dll is not present hook into original GetSizeOfPool inside the executable to make sure the game runs without ScriptHook in case there is an game update and the scripthook require updating
+	else
+	{
+		auto loc = hook::get_call(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));
+		MH_CreateHook(loc, GetSizeOfPool, (void**)&g_origSizeOfPool);
+	}
 
 	MH_CreateHook(hook::get_pattern("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
