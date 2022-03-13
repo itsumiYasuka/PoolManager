@@ -1,13 +1,10 @@
 #include "atPool.h"
+#include "Utils.h"
 #include <Hooking.h>
 #include <MinHook.h>
 #include <iostream>
-#include <Utils.h>
-#include <sstream>
-#include <iostream>
 #include <fstream>
 #include <filesystem>
-#include <psapi.h>
 
 #pragma comment( lib, "Dependencies/minhook/libMinHook.x64.lib" )
 
@@ -750,15 +747,14 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 	return value;
 }
 
-//todo- fix this thing
-typedef std::uint32_t(*GetSizeOfPool_t)(void* _this, uint32_t hash, std::uint32_t minSize, std::int64_t _SHRDR2entryPools);
+typedef std::uint32_t(*GetSizeOfPool_t)(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2entryPools);
 GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-std::uint32_t GetSizeOfPool(void* _this, uint32_t hash, std::uint32_t minSize, std::int64_t _SHRDR2entryPools)
+std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2entryPools)
 {
-	auto value = g_origSizeOfPool(_this, hash, minSize, _SHRDR2entryPools);
-	std::string poolName = poolEntries.LookupHashString(hash);
-	std::string poolNameHash = poolEntries.LookupHash(hash);
+	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _SHRDR2entryPools);
+	std::string poolName = poolEntries.LookupHashString(poolHash);
+	std::string poolNameHash = poolEntries.LookupHash(poolHash);
 
 	auto it = g_intPools.find(poolName);
 	if (it == g_intPools.end())
@@ -778,7 +774,6 @@ std::uint32_t GetSizeOfPool(void* _this, uint32_t hash, std::uint32_t minSize, s
 
 	return value;
 }
-
 
 static struct MhInit
 {
@@ -847,19 +842,20 @@ void InitializeMod()
 	// no-op assertation to ensure our pool crash reporting is used instead
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
 
-	//check if ScriptHookRDR2.dll is installed.
+	//get the pools while initial pools
 	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different pattern to avoid double hook
 	{
-		//find external pattern form inside another module xD
-		uintptr_t location = hook::FindPatternEx("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x41", "xxxxxxxxxxxxxxxx", "ScriptHookRDR2.dll"); //0x00000180005F70 @SHRDR2 as of v1.0.1436.25, hook inside ScriptHookRDR2 as a Workaround
-		void* address = reinterpret_cast<void*>(location); //MinHook only  takespointers x)
+		auto [modulebase, moduleend] = hook::GetModule("ScriptHookRDR2.dll");
 
-		MH_CreateHook(address, GetSizeOfPool, (void**)&g_origSizeOfPool); //Yes I'm Hooking the ScriptHookRDR2 detour function here
+		auto addr = reinterpret_cast<void*>(hook::get_StaticAddress(modulebase, 0x5F70)); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
+
+		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 	//ScriptHookRDR2.dll is not present hook into original GetSizeOfPool inside the executable to make sure the game runs without ScriptHook in case there is an game update and the scripthook require updating
 	else
 	{
-		auto loc = hook::get_call(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));
+		auto loc = hook::get_call(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
+
 		MH_CreateHook(loc, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 

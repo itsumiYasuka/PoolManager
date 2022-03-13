@@ -16,7 +16,16 @@
 
 namespace hook
 {
-	uintptr_t FindPatternEx(const char* pattern, const char* mask, const char* modulename);
+
+	std::pair<uintptr_t, uintptr_t> GetModule(const char* modulename);
+
+	template<typename T>
+	inline uintptr_t get_StaticAddress(T moduleaddress, uintptr_t address = 0)
+	{
+		auto mem = (uintptr_t)moduleaddress + (uintptr_t)address;
+
+		return mem;
+	}
 
 	template<typename AddressType>
 	inline void nop(AddressType address, size_t length)
@@ -33,19 +42,6 @@ namespace hook
 	inline void put(AddressType address, ValueType value)
 	{
 		memcpy((void*)address, &value, sizeof(value));
-	}
-
-	template <typename ValueType, typename AddressType>
-	inline void putVP(AddressType address, ValueType value)
-	{
-
-
-		DWORD oldProtect;
-		VirtualProtect((void*)address, sizeof(value), PAGE_EXECUTE_READWRITE, &oldProtect);
-
-		memcpy((void*)address, &value, sizeof(value));
-
-		VirtualProtect((void*)address, sizeof(value), oldProtect, &oldProtect);
 	}
 
 	void* AllocateFunctionStub(void* origin, void* function, int type);
