@@ -14,6 +14,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Dependencies\minhook\include\MinHook.h" />
     <ClInclude Include="Dependencies\patterns\Hooking.Patterns.h" />
     <ClInclude Include="include\atPool.h" />
     <ClInclude Include="include\Hooking.h" />
@@ -64,7 +65,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;NativeTrainer_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;dependencies\patterns;dependencies\minhook\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;dependencies\patterns;dependencies\minhook\include;dependencies\detours;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DebugInformationFormat>None</DebugInformationFormat>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>

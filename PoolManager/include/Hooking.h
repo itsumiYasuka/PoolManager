@@ -20,9 +20,9 @@ namespace hook
 	std::pair<uintptr_t, uintptr_t> GetModule(const char* modulename);
 
 	template<typename T>
-	inline uintptr_t get_StaticAddress(T moduleaddress, uintptr_t address = 0)
+	inline uintptr_t get_StaticAddress(T moduleaddress, ptrdiff_t address = 0)
 	{
-		auto mem = (uintptr_t)moduleaddress + (uintptr_t)address;
+		auto mem = (uintptr_t)moduleaddress + (ptrdiff_t)address;
 
 		return mem;
 	}

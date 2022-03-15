@@ -6,7 +6,7 @@
 #include <fstream>
 #include <filesystem>
 
-#pragma comment( lib, "Dependencies/minhook/libMinHook.x64.lib" )
+#pragma comment(lib,"Dependencies/minhook/libMinHook.x64.lib")
 
 class RageHashList
 {
@@ -763,6 +763,10 @@ std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaul
 		g_intPoolsMulti.insert({ value, poolName });
 		if (LogInitialPoolAmounts != 0)
 		{
+			if (poolName == poolNameHash)
+			{
+				poolName = "unknown";
+			}
 			std::ofstream outfile;
 			outfile.open("PoolManager_Startup.log", std::ios_base::app);
 			outfile << "poolName: " << poolName.c_str() << std::endl
@@ -775,7 +779,7 @@ std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaul
 	return value;
 }
 
-static struct MhInit
+ static struct MhInit
 {
 	MhInit()
 	{
@@ -843,15 +847,15 @@ void InitializeMod()
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
 
 	//get the pools while initial pools
-	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different pattern to avoid double hook
+	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different approach to avoid double hook
 	{
 		auto [modulebase, moduleend] = hook::GetModule("ScriptHookRDR2.dll");
 
-		auto addr = reinterpret_cast<void*>(hook::get_StaticAddress(modulebase, 0x5F70)); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
-
+		auto addr = reinterpret_cast<void*>(hook::get_StaticAddress(moduleend, -0x31090)); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
+		
 		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
-	//ScriptHookRDR2.dll is not present hook into original GetSizeOfPool inside the executable to make sure the game runs without ScriptHook in case there is an game update and the scripthook require updating
+	//ScriptHookRDR2.dll is not present hook into original rage::fwConfigManager::GetSizeOfPool inside the executable.
 	else
 	{
 		auto loc = hook::get_call(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
@@ -871,7 +875,7 @@ BOOL WINAPI DllMain(_In_ void* _DllHandle, _In_ unsigned long _Reason, _In_opt_ 
 	switch (_Reason)
 	{
 	case  DLL_PROCESS_ATTACH:
-		//	MessageBox(0, "PoolManager", "Test", MB_OK); //used for debugging
+		//	MessageBoxA(nullptr, "PoolManager", "Test", MB_OK); //used for debugging
 		InitializeMod();
 		break;
 	}
