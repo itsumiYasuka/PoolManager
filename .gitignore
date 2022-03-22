@@ -20,3 +20,5 @@
 /PoolManager/Dependencies/zyrex/Zyrex
 /PoolManager/Dependencies/zyrex
 /PoolManager/Dependencies/detours
+/PoolManager/build/tmp/Debug
+/PoolManager/Dependencies/robin-hood-hashing

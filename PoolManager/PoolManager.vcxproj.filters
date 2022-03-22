@@ -11,7 +11,7 @@
     <ClInclude Include="include\atPool.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="include\Utils.h">
+    <ClInclude Include="include\joaat.h">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="include\Hooking.h">

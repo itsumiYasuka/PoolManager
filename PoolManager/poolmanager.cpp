@@ -1,5 +1,6 @@
 #include "atPool.h"
-#include "Utils.h"
+#include "joaat.h"
+#include "Dependencies/robin-hood-hashing/robin_hood.h"
 #include <Hooking.h>
 #include <MinHook.h>
 #include <iostream>
@@ -16,7 +17,7 @@ public:
 	{
 		for (int i = 0; i < Size; i++)
 		{
-			m_lookupList.insert({ HashString(list[i]), list[i] });
+			m_lookupList.insert({ joaat::generate(list[i]), list[i] });
 		}
 	}
 
@@ -52,7 +53,7 @@ public:
 	}
 
 private:
-	std::map<uint32_t, std::string_view> m_lookupList;
+	robin_hood::unordered_map<uint32_t, std::string_view> m_lookupList;
 };
 
 int LogPercentUsageWarning = GetPrivateProfileInt("POOL_SETTINGS", "LogPercentUsageWarning", 0, ".\\PoolManager.toml");
@@ -64,7 +65,7 @@ static int LastSizeLogged;
 
 bool clearedLogs = false;
 
-void cleanUpLogs()
+static void cleanUpLogs()
 {
 	if (!clearedLogs)
 	{
@@ -88,8 +89,8 @@ void cleanUpLogs()
 
 static std::map<uint32_t, atPoolBase*> g_pools;
 static std::map<atPoolBase*, uint32_t> g_inversePools;
-static std::map<std::string, int> g_intPools;
-static std::multimap<int, std::string> g_intPoolsMulti;
+static std::map<std::string, UINT> g_intPools;
+static std::multimap<UINT, std::string> g_intPoolsMulti;
 
 static const char* poolEntriesTable[] = {
 "animatedbuilding",
@@ -727,7 +728,7 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 		std::string extraWarning;
 		if (poolName.find("0x") == std::string::npos)
 		{
-			sprintf_s(buff, "\nYou need to raise %s's pool size in common/data/gameconfig.xml", poolName.c_str());
+			sprintf_s(buff, "\nYou need to raise %s's pool size in update_1.rpf/common/data/gameconfig.xml", poolName.c_str());
 			extraWarning = buff;
 		}
 
@@ -747,12 +748,12 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 	return value;
 }
 
-typedef std::uint32_t(*GetSizeOfPool_t)(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2entryPools);
+typedef std::uint32_t(*GetSizeOfPool_t)(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff);
 GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2entryPools)
+std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff)
 {
-	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _SHRDR2entryPools);
+	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _SHRDR2PoolsStuff);
 	std::string poolName = poolEntries.LookupHashString(poolHash);
 	std::string poolNameHash = poolEntries.LookupHash(poolHash);
 
@@ -789,6 +790,8 @@ std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaul
 
 void InitializeMod()
 {
+	cleanUpLogs();
+
 	auto registerPools = [](hook::pattern& patternMatch, int callOffset, int hashOffset)
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
@@ -835,8 +838,6 @@ void InitializeMod()
 		}
 	};
 
-	cleanUpLogs();
-
 	// find initial pools
 	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 8B D8 E8"), 51, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CD"), 41, 1);
@@ -874,7 +875,7 @@ BOOL WINAPI DllMain(_In_ void* _DllHandle, _In_ unsigned long _Reason, _In_opt_ 
 {
 	switch (_Reason)
 	{
-	case  DLL_PROCESS_ATTACH:
+	case  DLL_PROCESS_ATTACH: 
 		//	MessageBoxA(nullptr, "PoolManager", "Test", MB_OK); //used for debugging
 		InitializeMod();
 		break;
