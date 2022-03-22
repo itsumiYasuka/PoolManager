@@ -89,8 +89,8 @@ static void cleanUpLogs()
 
 static std::map<uint32_t, atPoolBase*> g_pools;
 static std::map<atPoolBase*, uint32_t> g_inversePools;
-static std::map<std::string, UINT> g_intPools;
 static std::multimap<UINT, std::string> g_intPoolsMulti;
+static robin_hood::unordered_map<std::string, UINT> g_intPools;
 
 static const char* poolEntriesTable[] = {
 "animatedbuilding",
@@ -761,7 +761,6 @@ std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaul
 	if (it == g_intPools.end())
 	{
 		g_intPools.insert({ poolName, value });
-		g_intPoolsMulti.insert({ value, poolName });
 		if (LogInitialPoolAmounts != 0)
 		{
 			if (poolName == poolNameHash)

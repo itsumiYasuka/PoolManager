@@ -23,9 +23,11 @@
     <ClInclude Include="include\jitasm.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="include\RDR3VtableList.h" />
     <ClInclude Include="Dependencies\minhook\include\MinHook.h">
       <Filter>Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RDR3VtableList.h">
+      <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
