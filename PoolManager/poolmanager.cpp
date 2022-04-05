@@ -89,8 +89,8 @@ static void cleanUpLogs()
 
 static std::map<uint32_t, atPoolBase*> g_pools;
 static std::map<atPoolBase*, uint32_t> g_inversePools;
+static std::map<std::string, UINT> g_intPools;
 static std::multimap<UINT, std::string> g_intPoolsMulti;
-static robin_hood::unordered_map<std::string, UINT> g_intPools;
 
 static const char* poolEntriesTable[] = {
 "animatedbuilding",
@@ -748,10 +748,10 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 	return value;
 }
 
-typedef std::uint32_t(*GetSizeOfPool_t)(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff);
-GetSizeOfPool_t g_origSizeOfPool = nullptr;
+typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff);
+static GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-std::uint32_t GetSizeOfPool(void* _this, uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff)
+static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff)
 {
 	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _SHRDR2PoolsStuff);
 	std::string poolName = poolEntries.LookupHashString(poolHash);
@@ -848,12 +848,10 @@ void InitializeMod()
 
 	//get the pools while initial pools
 	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different approach to avoid double hook
-	{
-		auto [modulebase, moduleend] = hook::GetModule("ScriptHookRDR2.dll");
+	{		
+		auto addr = hook::FindPatternEX("\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41", "xxxx?xxxx?xxxxxx", "ScriptHookRDR2.dll"); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
 
-		auto addr = reinterpret_cast<void*>(hook::get_StaticAddress(moduleend, -0x31090)); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
-		
-		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
+		MH_CreateHook(reinterpret_cast<void*>(addr), GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 	//ScriptHookRDR2.dll is not present hook into original rage::fwConfigManager::GetSizeOfPool inside the executable.
 	else

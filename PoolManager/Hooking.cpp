@@ -1,4 +1,5 @@
 #include "Hooking.h"
+#include <Psapi.h>
 //credits to @alexguirre for helping with this https://github.com/alexguirre
 namespace hook
 {
@@ -41,7 +42,6 @@ namespace hook
 	{
 		static void* g_currentStub = nullptr;
 
-		//credits @alexguirre for help and explanation https://github.com/alexguirre
 		static void* g_stubMemoryStart = nullptr;
 
 		if (!g_currentStub)
@@ -98,15 +98,36 @@ namespace hook
 		return code;
 	}
 
-	 std::pair<uintptr_t, uintptr_t> GetModule(const char* modulename)
-		{
-			const static uintptr_t moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandle(modulename));
-			const static uintptr_t moduleEnd = [&]()
-			{
-				auto ntHeaders = reinterpret_cast<PIMAGE_NT_HEADERS64>(moduleBase + reinterpret_cast<PIMAGE_DOS_HEADER>(moduleBase)->e_lfanew);
-				return moduleBase + ntHeaders->OptionalHeader.SizeOfImage;
-			}();
+	uintptr_t FindPattern(const char* pattern, const char* mask, const char* address, size_t size)
+	{
+		const char* addressEnd = address + size;
+		const size_t maskLength = static_cast<size_t>(strlen(mask) - 1);
 
-			return { moduleBase, moduleEnd };
-		} 
+		for (size_t i = 0; address < addressEnd; address++)
+		{
+			if (*address == pattern[i] || mask[i] == '?')
+			{
+				if (mask[i + 1] == '\0')
+				{
+					return reinterpret_cast<uintptr_t>(address) - maskLength;
+				}
+
+				i++;
+			}
+			else
+			{
+				i = 0;
+			}
+		}
+
+		return 0;
+	}
+	//find patterns in external module
+	uintptr_t FindPatternEX(const char* pattern, const char* mask, const char *modulename)
+	{
+		MODULEINFO module = {};
+		GetModuleInformation(GetCurrentProcess(), GetModuleHandle(modulename), &module, sizeof(MODULEINFO));
+
+		return FindPattern(pattern, mask, reinterpret_cast<const char*>(module.lpBaseOfDll), module.SizeOfImage);
+	}
 }
