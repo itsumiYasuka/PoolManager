@@ -6,17 +6,17 @@
  */
 
 #pragma once
-
-#include <stdint.h>
-#include <type_traits>
-#include <memory>
-#include <functional>
+#include "Hooking.Patterns.h"
 #include "jitasm.h"
-
 
 namespace hook
 {
-	uintptr_t FindPatternEX(const char* pattern, const char* mask, const char* modulename);
+	//find patterns in external module
+	template<typename T = void>
+	inline auto get_module_pattern(const char* modulename, std::string_view pattern_string, ptrdiff_t offset = 0)
+	{
+		return pattern(GetModuleHandle(modulename), std::move(pattern_string)).get_first<T>(offset);
+	}
 
 	template<typename AddressType>
 	inline void nop(AddressType address, size_t length)
@@ -87,5 +87,3 @@ namespace hook
 	};
 
 }
-
-#include "Hooking.Patterns.h"

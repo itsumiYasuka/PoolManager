@@ -841,17 +841,17 @@ void InitializeMod()
 	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 8B D8 E8"), 51, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CD"), 41, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
-	registerPools(hook::pattern("8B D0 E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 ?"), 0x2A, 0x1); // this actually works xD but only logs hashes  todo: get the string form lea and calculate hashes. 
+	registerPools(hook::pattern("8B D0 E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 ?"), 0x2A, 0x1); // this actually works xD but only logs hashes -- todo: get the string form lea and calculate hashes. 
 
 	// no-op assertation to ensure our pool crash reporting is used instead
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
 
-	//get the pools while initial pools
+	//get the initial pools
 	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different approach to avoid double hook
 	{		
-		auto addr = hook::FindPatternEX("\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41", "xxxx?xxxx?xxxxxx", "ScriptHookRDR2.dll"); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
+		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
 
-		MH_CreateHook(reinterpret_cast<void*>(addr), GetSizeOfPool, (void**)&g_origSizeOfPool);
+		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 	//ScriptHookRDR2.dll is not present hook into original rage::fwConfigManager::GetSizeOfPool inside the executable.
 	else

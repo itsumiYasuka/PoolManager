@@ -1,5 +1,4 @@
 #include "Hooking.h"
-#include <Psapi.h>
 //credits to @alexguirre for helping with this https://github.com/alexguirre
 namespace hook
 {
@@ -96,38 +95,5 @@ namespace hook
 			g_currentStub = nullptr;
 
 		return code;
-	}
-
-	uintptr_t FindPattern(const char* pattern, const char* mask, const char* address, size_t size)
-	{
-		const char* addressEnd = address + size;
-		const size_t maskLength = static_cast<size_t>(strlen(mask) - 1);
-
-		for (size_t i = 0; address < addressEnd; address++)
-		{
-			if (*address == pattern[i] || mask[i] == '?')
-			{
-				if (mask[i + 1] == '\0')
-				{
-					return reinterpret_cast<uintptr_t>(address) - maskLength;
-				}
-
-				i++;
-			}
-			else
-			{
-				i = 0;
-			}
-		}
-
-		return 0;
-	}
-	//find patterns in external module
-	uintptr_t FindPatternEX(const char* pattern, const char* mask, const char *modulename)
-	{
-		MODULEINFO module = {};
-		GetModuleInformation(GetCurrentProcess(), GetModuleHandle(modulename), &module, sizeof(MODULEINFO));
-
-		return FindPattern(pattern, mask, reinterpret_cast<const char*>(module.lpBaseOfDll), module.SizeOfImage);
 	}
 }
