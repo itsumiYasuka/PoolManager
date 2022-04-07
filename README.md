@@ -7,7 +7,7 @@ Credits to @alexguirre and @Disquse for help and Cfx.re, @Dilapidated for their 
 
 # How to build 
 
-To build this you will need [minhook](https://github.com/TsudaKageyu/minhook) and [hooking.patterns](https://github.com/ThirteenAG/Hooking.Patterns) get them then create a folder name it dependencies and put them inside it the move the folder into /PoolManager.
+To build this you will need [minhook](https://github.com/TsudaKageyu/minhook), [hooking.patterns](https://github.com/ThirteenAG/Hooking.Patterns) and [robin hood hashing](https://github.com/martinus/robin-hood-hashing) get them then create a folder name it dependencies and put them inside it the move the folder into /PoolManager.
 You will will also need [jitasm](https://github.com/hikaru-i/jitasm) download it and put the header file in the /Pool manager/include folder.
 
 # Releases
