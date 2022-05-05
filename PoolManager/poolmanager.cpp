@@ -87,10 +87,10 @@ static void cleanUpLogs()
 	}
 }
 
-static std::map<uint32_t, atPoolBase*> g_pools;
-static std::map<atPoolBase*, uint32_t> g_inversePools;
-static std::map<std::string, UINT> g_intPools;
-static std::multimap<UINT, std::string> g_intPoolsMulti;
+static robin_hood::unordered_map<uint32_t, atPoolBase*> g_pools;
+static robin_hood::unordered_map<atPoolBase*, uint32_t> g_inversePools;
+static robin_hood::unordered_map<std::string, UINT> g_intPools;
+static std::unordered_multimap<UINT, std::string> g_intPoolsMulti;
 
 static const char* poolEntriesTable[] = {
 "animatedbuilding",
@@ -748,12 +748,12 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 	return value;
 }
 
-typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff);
+typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize);
 static GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _SHRDR2PoolsStuff)
+static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize)
 {
-	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _SHRDR2PoolsStuff);
+	auto value = g_origSizeOfPool(_this, poolHash, defaultSize);
 	std::string poolName = poolEntries.LookupHashString(poolHash);
 	std::string poolNameHash = poolEntries.LookupHash(poolHash);
 
