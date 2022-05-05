@@ -61,8 +61,9 @@ namespace hook
 		call_reg<0>(address, func);
 	}
 
+	//get address of original func form call or jmp
 	template<typename T>
-	inline T get_call(T address)
+	inline T get_address(T address)
 	{
 		intptr_t target = *(int32_t*)((uintptr_t)address + 1);
 		target += ((uintptr_t)address + 5);

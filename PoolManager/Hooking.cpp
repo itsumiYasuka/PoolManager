@@ -31,7 +31,7 @@ namespace hook
 		return NULL;
 	}
 
-	static LPVOID FindNextFreeRegion(LPVOID pAddress, LPVOID pMaxAddr, DWORD dwAllocationGranularity)
+	LPVOID FindNextFreeRegion(LPVOID pAddress, LPVOID pMaxAddr, DWORD dwAllocationGranularity)
 	{
 		ULONG_PTR tryAddr = (ULONG_PTR)pAddress;
 

@@ -849,14 +849,14 @@ void InitializeMod()
 	//get the initial pools
 	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different approach to avoid double hook
 	{		
-		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //0x00000180005F70 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
+		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //0x0000000180005FB0 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
 
 		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 	//ScriptHookRDR2.dll is not present hook into original rage::fwConfigManager::GetSizeOfPool inside the executable.
 	else
 	{
-		auto loc = hook::get_call(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
+		auto loc = hook::get_address(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
 
 		MH_CreateHook(loc, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
