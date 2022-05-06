@@ -13,7 +13,7 @@ namespace hook
 {
 	//find patterns in external module
 	template<typename T = void>
-	inline auto get_module_pattern(const char* modulename, std::string_view pattern_string, ptrdiff_t offset = 0)
+	inline auto get_module_pattern(const char *modulename, std::string_view pattern_string, ptrdiff_t offset = 0)
 	{
 		return pattern(GetModuleHandle(modulename), std::move(pattern_string)).get_first<T>(offset);
 	}
