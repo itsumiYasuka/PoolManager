@@ -75,7 +75,7 @@ namespace hook
 	template<typename TTarget, typename T>
 	inline void set_call(TTarget* target, T address)
 	{
-		*(T*)target = get_call(address);
+		*(T*)target = get_address(address);
 	}
 
 	template<typename TClass, typename TMember>

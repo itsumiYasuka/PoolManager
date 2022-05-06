@@ -1,5 +1,5 @@
 # PoolManager
-PoolManager.asi will attempt to identify the cause of a crash in RDR 2 if the crash is related to a memory pool PoolManager.asi will attempt to identify the cause of a crash in RDR 2 if the crash is related to a memory pool within gameconfig.xml
+PoolManager.asi will attempt to identify the cause of a crash in RDR 2 if the crash is related to a memory pool within gameconfig.xml
 
 # Currently works on properly on RDR2
 

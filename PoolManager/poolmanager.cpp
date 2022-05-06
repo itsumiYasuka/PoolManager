@@ -791,57 +791,78 @@ void InitializeMod()
 {
 	cleanUpLogs();
 
-	auto registerPools = [](hook::pattern& patternMatch, int callOffset, int hashOffset)
+	auto registerPool = [](hook::pattern_match match, int callOffset, uint32_t hash, uint32_t poolOffset)
+	{
+		struct : jitasm::Frontend
+		{
+			uint32_t hash;
+			uint32_t offset;
+			uint64_t origFn;
+
+			void InternalMain() override
+			{
+				push(rcx);
+				push(rdx);
+				push(r8);
+				push(r9);
+
+				sub(rsp, 0x38);
+
+				add(rcx, offset);
+				mov(edx, hash);
+
+				mov(rax, (uint64_t)&SetPoolFn);
+				call(rax);
+
+				add(rsp, 0x38);
+
+				pop(r9);
+				pop(r8);
+				pop(rdx);
+				pop(rcx);
+
+				mov(rax, origFn);
+				jmp(rax);
+			}
+		}*stub = new std::remove_pointer_t<decltype(stub)>();
+
+		stub->hash = hash;
+		stub->offset = poolOffset;
+
+		auto call = match.get<void>(callOffset);
+		hook::set_call(&stub->origFn, call);
+		hook::call(call, stub->GetCode());
+	};
+
+	auto registerPools = [&](hook::pattern& patternMatch, int callOffset, int hashOffset)
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
-			auto hash = *match.get<uint32_t>(hashOffset);
-
-			struct : jitasm::Frontend
-			{
-				uint32_t hash;
-				uint64_t origFn;
-
-				void InternalMain() override
-				{
-					sub(rsp, 0x38);
-
-					mov(rax, qword_ptr[rsp + 0x38 + 0x28]);
-					mov(qword_ptr[rsp + 0x20], rax);
-
-					mov(rax, qword_ptr[rsp + 0x38 + 0x30]);
-					mov(qword_ptr[rsp + 0x28], rax);
-
-					mov(rax, origFn);
-					call(rax);
-
-					mov(rcx, rax);
-					mov(edx, hash);
-
-					mov(rax, (uint64_t)&SetPoolFn);
-					call(rax);
-
-					add(rsp, 0x38);
-
-					ret();
-				}
-			}*stub = new std::remove_pointer_t<decltype(stub)>();
-
-			stub->hash = hash;
-
-			auto call = match.get<void>(callOffset);
-			hook::set_call(&stub->origFn, call);
-			hook::call(call, stub->GetCode());
-
+			registerPool(match, callOffset, *match.get<uint32_t>(hashOffset), NULL);
 		}
 	};
+
+	auto registerNamedPools = [&](hook::pattern& patternMatch, int callOffset,  int poolOffset)
+	{
+		for (size_t i = 0; i < patternMatch.size(); i++)
+		{
+			auto match = patternMatch.get(i);
+
+			const char* name = match.get<const char>(0);
+			name = name + *(int32_t*)(name + 3) + 7;
+
+			registerPool(match, callOffset, joaat::generate(name), poolOffset);
+		}
+	};
+
 
 	// find initial pools
 	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 8B D8 E8"), 51, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CD"), 41, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
-	registerPools(hook::pattern("8B D0 E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 ?"), 0x2A, 0x1); // this actually works xD but only logs hashes -- todo: get the string form lea and calculate hashes. 
+	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? 33 C9 E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B8 ? ? ? ? 8B D0"), 0x45, NULL);
+	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? C6 40 E8 00 41 B9 ? ? ? ? C6"), 0x23, 0x46);
 
 	// no-op assertation to ensure our pool crash reporting is used instead
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
