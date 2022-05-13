@@ -882,7 +882,7 @@ void InitializeMod()
 
 		MH_CreateHook(loc, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
-
+	
 	MH_CreateHook(hook::get_pattern("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
 
