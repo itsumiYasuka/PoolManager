@@ -5,7 +5,6 @@
 #include <MinHook.h>
 #include <iostream>
 #include <fstream>
-#include <filesystem>
 
 #pragma comment(lib,"Dependencies/minhook/libMinHook.x64.lib")
 
@@ -869,7 +868,7 @@ void InitializeMod()
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
 
 	//get the initial pools
-	if (std::filesystem::exists(".\\ScriptHookRDR2.dll")) //If using SHV use different approach to avoid double hook
+	if (GetModuleHandle("ScriptHookRDR2.dll") != nullptr) //If using SHV use different approach to avoid double hook
 	{		
 		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //0x0000000180005FB0 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
 
