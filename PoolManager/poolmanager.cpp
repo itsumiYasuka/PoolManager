@@ -869,8 +869,8 @@ void InitializeMod()
 
 	//get the initial pools
 	if (GetModuleHandle("ScriptHookRDR2.dll") != nullptr) //If using SHV use different approach to avoid double hook
-	{		
-		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //0x0000000180005FB0 @adress of the ScriptHookRDR2 Detour function form v1.0.1436.25
+	{
+		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //address of ScriptHookRDR2 Detour function form v1.0.1436.25
 
 		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
