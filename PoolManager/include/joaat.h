@@ -4,6 +4,8 @@
 namespace joaat
 {
     // Source: https://gtaforums.com/topic/879408-c-string-hasher/
+
+    //can confirm this alos exists in RDR2 see ** 4C 8B C2 48 8B D1 48 85 ** or ** 44 33 C0 8A 02, -0x43 ** for more info 
     inline constexpr const unsigned char _lookup[] = {
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
          0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
@@ -69,5 +71,24 @@ namespace joaat
     inline constexpr uint32_t generate(const char* str, const char* concat, uint32_t initialHash)
     {
         return _finalize(concat, _substring(str, initialHash));
+    }
+    // putting this here for later use
+    inline constexpr uint32_t generate_case_sensitive(const char* str, uint32_t hash = 0)
+    {
+        if (!str)
+        {
+            return NULL;
+        }
+        while (*str)
+        {
+            hash += *str++;
+            hash += (hash << 10);
+            hash ^= (hash >> 6);
+        }
+        hash += (hash << 3);
+        hash ^= (hash >> 11);
+        hash += (hash << 15);
+
+        return hash;
     }
 }
