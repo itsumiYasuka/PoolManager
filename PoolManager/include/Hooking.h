@@ -76,7 +76,7 @@ namespace hook
 
 	//get address of original func form call or jmp
 	template<typename T>
-	inline T get_address(T address)
+	inline T get_call(T address)
 	{
 		intptr_t target = *(int32_t*)((uintptr_t)address + 1);
 		target += ((uintptr_t)address + 5);
@@ -88,7 +88,7 @@ namespace hook
 	template<typename TTarget, typename T>
 	inline void set_call(TTarget* target, T address)
 	{
-		*(T*)target = get_address(address);
+		*(T*)target = get_call(address);
 	}
 
 	template<typename TClass, typename TMember>
@@ -99,5 +99,14 @@ namespace hook
 			return (void*)get_member(function);
 		}
 	};
+
+	template<typename T, typename TAddr>
+	inline T get_address(TAddr address)
+	{
+		intptr_t target = *(int32_t*)(ptrdiff_t)address;
+		target += ((ptrdiff_t)address + 4);
+
+		return (T)target;
+	}
 
 }

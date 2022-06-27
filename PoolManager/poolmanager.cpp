@@ -779,35 +779,38 @@ static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uin
 }
 
  static struct MhInit
-{
-	MhInit()
-	{
-		MH_Initialize();
-	}
-} mhInit;
+ {
+	 MhInit()
+	 {
+		 MH_Initialize();
+	 }
+ } mhInit;
 
 void InitializeMod()
 {
 	cleanUpLogs();
 
-	auto registerPool = [](hook::pattern_match match, int callOffset, uint32_t hash, uint32_t poolOffset)
+	auto registerPool = [](hook::pattern_match match, int callOffset, uint32_t hash)
 	{
 		struct : jitasm::Frontend
 		{
 			uint32_t hash;
-			uint32_t offset;
 			uint64_t origFn;
 
 			void InternalMain() override
 			{
-				push(rcx);
-				push(rdx);
-				push(r8);
-				push(r9);
-
 				sub(rsp, 0x38);
 
-				add(rcx, offset);
+				mov(rax, qword_ptr[rsp + 0x38 + 0x28]);
+				mov(qword_ptr[rsp + 0x20], rax);
+
+				mov(rax, qword_ptr[rsp + 0x38 + 0x30]);
+				mov(qword_ptr[rsp + 0x28], rax);
+
+				mov(rax, origFn);
+				call(rax);
+
+				mov(rcx, rax);
 				mov(edx, hash);
 
 				mov(rax, (uint64_t)&SetPoolFn);
@@ -815,18 +818,11 @@ void InitializeMod()
 
 				add(rsp, 0x38);
 
-				pop(r9);
-				pop(r8);
-				pop(rdx);
-				pop(rcx);
-
-				mov(rax, origFn);
-				jmp(rax);
+				ret();
 			}
-		}*stub = new std::remove_pointer_t<decltype(stub)>();
+		} *stub = new std::remove_pointer_t<decltype(stub)>();
 
 		stub->hash = hash;
-		stub->offset = poolOffset;
 
 		auto call = match.get<void>(callOffset);
 		hook::set_call(&stub->origFn, call);
@@ -838,20 +834,17 @@ void InitializeMod()
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
-			registerPool(match, callOffset, *match.get<uint32_t>(hashOffset), NULL);
+			registerPool(match, callOffset, *match.get<uint32_t>(hashOffset));
 		}
 	};
 
-	auto registerNamedPools = [&](hook::pattern& patternMatch, int callOffset,  int poolOffset)
+	auto registerNamedPools = [&](hook::pattern& patternMatch, int callOffset,  int nameOffset)
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
-
-			const char* name = match.get<const char>(0);
-			name = name + *(int32_t*)(name + 3) + 7;
-
-			registerPool(match, callOffset, joaat::generate(name), poolOffset);
+			char* name = hook::get_address<char*>(match.get<void*>(nameOffset));
+			registerPool(match, callOffset ,joaat::generate(name));
 		}
 	};
 
@@ -861,8 +854,8 @@ void InitializeMod()
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CD"), 41, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
 
-	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? 33 C9 E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B8 ? ? ? ? 8B D0"), 0x45, NULL);
-	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? C6 40 E8 ? 41 B9 ? ? ? ? C6"), 0x23, 0x46);
+	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? 33 C9 E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B8"), 0x45, 0x3);
+	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? C6 40 E8 ? 41 B9 ? ? ? ? C6"), 0x23, 0x3);
 
 	// no-op assertation to ensure our pool crash reporting is used instead
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
@@ -870,14 +863,14 @@ void InitializeMod()
 	//get the initial pools
 	if (GetModuleHandle("ScriptHookRDR2.dll") != nullptr) //If using SHV use different approach to avoid double hook
 	{
-		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //address of ScriptHookRDR2 Detour function form v1.0.1436.25
+		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //address of ScriptHookRDR2 Detour function
 
 		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 	//ScriptHookRDR2.dll is not present hook into original rage::fwConfigManager::GetSizeOfPool inside the executable.
 	else
 	{
-		auto loc = hook::get_address(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
+		auto loc = hook::get_call(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
 
 		MH_CreateHook(loc, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
