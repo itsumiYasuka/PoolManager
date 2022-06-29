@@ -1600,7 +1600,7 @@
 "camzoommodifierfirstperson",
 "camPhotoModeModifier",
 "camStickyAimModifierFirstPerson",
-"camTurretModifierFirstPerson"
+"camTurretModifierFirstPerson",
 "camMoverFixUpModifier",
 "camcontrolhelper",
 "camenvelope",
