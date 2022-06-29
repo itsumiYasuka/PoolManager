@@ -1598,6 +1598,10 @@
 "camonfootbasemodifierfirstperson",
 "camsniperbasemodifierfirstperson",
 "camzoommodifierfirstperson",
+"camPhotoModeModifier",
+"camStickyAimModifierFirstPerson",
+"camTurretModifierFirstPerson"
+"camMoverFixUpModifier",
 "camcontrolhelper",
 "camenvelope",
 "camfishinghelper",
