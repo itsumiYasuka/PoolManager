@@ -21,7 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Dependencies\minhook\include\MinHook.h" />
     <ClInclude Include="Dependencies\patterns\Hooking.Patterns.h" />
-    <ClInclude Include="include\atPool.h" />
+    <ClInclude Include="include\rage.hpp" />
     <ClInclude Include="include\Hooking.h" />
     <ClInclude Include="include\jitasm.h" />
     <ClInclude Include="include\joaat.h" />

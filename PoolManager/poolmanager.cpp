@@ -1,4 +1,4 @@
-#include "atPool.h"
+#include "rage.hpp"
 #include "joaat.h"
 #include "Dependencies/robin-hood-hashing/robin_hood.h"
 #include <Hooking.h>
@@ -86,8 +86,8 @@ static void cleanUpLogs()
 	}
 }
 
-static robin_hood::unordered_map<uint32_t, atPoolBase*> g_pools;
-static robin_hood::unordered_map<atPoolBase*, uint32_t> g_inversePools;
+static robin_hood::unordered_map<uint32_t, rage::fwBasePool*> g_pools;
+static robin_hood::unordered_map<rage::fwBasePool*, uint32_t> g_inversePools;
 static robin_hood::unordered_map<std::string, UINT> g_intPools;
 static std::unordered_multimap<UINT, std::string> g_intPoolsMulti;
 
@@ -609,7 +609,7 @@ static const char* poolEntriesTable[] = {
 
 static RageHashList poolEntries(poolEntriesTable);
 
-static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
+static rage::fwBasePool* SetPoolFn(rage::fwBasePool* pool, uint32_t hash)
 {
 	g_pools[hash] = pool;
 	g_inversePools.insert({ pool, hash });
@@ -617,9 +617,9 @@ static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
 	return pool;
 }
 
-static void(*g_origPoolDtor)(atPoolBase*);
+static void(*g_origPoolDtor)(rage::fwBasePool*);
 
-static void PoolDtorWrap(atPoolBase* pool)
+static void PoolDtorWrap(rage::fwBasePool* pool)
 {
 	auto hashIt = g_inversePools.find(pool);
 
@@ -634,9 +634,9 @@ static void PoolDtorWrap(atPoolBase* pool)
 	return g_origPoolDtor(pool);
 }
 
-static void* (*g_origPoolAllocate)(atPoolBase*, uint64_t);
+static void* (*g_origPoolAllocate)(rage::fwBasePool*, uint64_t);
 
-static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
+static void* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 {
 	void* value = g_origPoolAllocate(pool, unk);
 
@@ -747,12 +747,12 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 	return value;
 }
 
-typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize);
+typedef std::int64_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff);
 static GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize)
+static std::int64_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff)
 {
-	auto value = g_origSizeOfPool(_this, poolHash, defaultSize);
+	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _ScriptHookRDR2Stuff);
 	std::string poolName = poolEntries.LookupHashString(poolHash);
 	std::string poolNameHash = poolEntries.LookupHash(poolHash);
 

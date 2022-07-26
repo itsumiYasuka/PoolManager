@@ -8,7 +8,7 @@
     <ClCompile Include="Hooking.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\atPool.h">
+    <ClInclude Include="include\rage.hpp">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="include\joaat.h">
