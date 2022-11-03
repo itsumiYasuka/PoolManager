@@ -91,15 +91,6 @@ namespace hook
 		*(T*)target = get_call(address);
 	}
 
-	template<typename TClass, typename TMember>
-	struct get_func_ptr<TMember TClass::*>
-	{
-		static void* get(TMember TClass::* function)
-		{
-			return (void*)get_member(function);
-		}
-	};
-
 	template<typename T, typename TAddr>
 	inline T get_address(TAddr address)
 	{

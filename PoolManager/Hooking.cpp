@@ -15,8 +15,7 @@ namespace hook
 		while (tryAddr >= (ULONG_PTR)pMinAddr)
 		{
 			MEMORY_BASIC_INFORMATION mbi;
-			if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) ==
-				0)
+			if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
 				break;
 
 			if (mbi.State == MEM_FREE)
@@ -81,12 +80,16 @@ namespace hook
 			minAddr = (ULONG_PTR)si.lpMinimumApplicationAddress;
 			maxAddr = (ULONG_PTR)si.lpMaximumApplicationAddress;
 
-			if ((ULONG_PTR)origin > MAX_MEMORY_RANGE &&
-				minAddr < (ULONG_PTR)origin - MAX_MEMORY_RANGE)
+			// origin ± 512MB
+			if ((ULONG_PTR)origin > MAX_MEMORY_RANGE && minAddr < (ULONG_PTR)origin - MAX_MEMORY_RANGE)
 				minAddr = (ULONG_PTR)origin - MAX_MEMORY_RANGE;
 
 			if (maxAddr > (ULONG_PTR)origin + MAX_MEMORY_RANGE)
 				maxAddr = (ULONG_PTR)origin + MAX_MEMORY_RANGE;
+
+			// make space for MEMORY_BLOCK_SIZE bytes.
+			maxAddr -= MEMORY_BLOCK_SIZE - 1;
+
 			{
 				LPVOID pAlloc = origin;
 

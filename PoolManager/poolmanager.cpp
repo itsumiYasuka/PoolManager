@@ -1,10 +1,11 @@
+#define NOMINMAX
 #include "rage.hpp"
 #include "joaat.h"
-#include "Dependencies/robin-hood-hashing/robin_hood.h"
 #include <Hooking.h>
 #include <MinHook.h>
 #include <iostream>
 #include <fstream>
+#include "Dependencies/ankerl/unordered_dense.h"
 
 #pragma comment(lib,"Dependencies/minhook/libMinHook.x64.lib")
 
@@ -52,7 +53,7 @@ public:
 	}
 
 private:
-	robin_hood::unordered_map<uint32_t, std::string_view> m_lookupList;
+	ankerl::unordered_dense::map<uint32_t, std::string_view> m_lookupList;
 };
 
 int LogPercentUsageWarning = GetPrivateProfileInt("POOL_SETTINGS", "LogPercentUsageWarning", 0, ".\\PoolManager.toml");
@@ -86,10 +87,10 @@ static void cleanUpLogs()
 	}
 }
 
-static robin_hood::unordered_map<uint32_t, rage::fwBasePool*> g_pools;
-static robin_hood::unordered_map<rage::fwBasePool*, uint32_t> g_inversePools;
-static robin_hood::unordered_map<std::string, UINT> g_intPools;
-static std::unordered_multimap<UINT, std::string> g_intPoolsMulti;
+static std::map<uint32_t, rage::fwBasePool*> g_pools;
+static std::map<rage::fwBasePool*, uint32_t> g_inversePools;
+static std::map<std::string, uint32_t> g_intPools;
+static std::multimap<uint32_t, std::string> g_intPoolsMulti;
 
 static const char* poolEntriesTable[] = {
 "animatedbuilding",
@@ -747,10 +748,10 @@ static void* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 	return value;
 }
 
-typedef std::int64_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff);
+typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff);
 static GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-static std::int64_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff)
+static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff)
 {
 	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _ScriptHookRDR2Stuff);
 	std::string poolName = poolEntries.LookupHashString(poolHash);
