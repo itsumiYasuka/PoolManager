@@ -635,11 +635,12 @@ static void PoolDtorWrap(rage::fwBasePool* pool)
 	return g_origPoolDtor(pool);
 }
 
-static void* (*g_origPoolAllocate)(rage::fwBasePool*, uint64_t);
+typedef std::int32_t* (*PoolAllocateWrap_t)(rage::fwBasePool*, uint64_t unk);
+PoolAllocateWrap_t g_origPoolAllocate = nullptr;
 
-static void* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
+std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 {
-	void* value = g_origPoolAllocate(pool, unk);
+	auto value = g_origPoolAllocate(pool, unk);
 
 
 	if (LogPercentUsageWarning != 0)
@@ -864,20 +865,20 @@ void InitializeMod()
 	//get the initial pools
 	if (GetModuleHandle("ScriptHookRDR2.dll") != nullptr) //If using SHV use different approach to avoid double hook
 	{
-		auto addr = hook::get_module_pattern("ScriptHookRDR2.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41"); //address of ScriptHookRDR2 Detour function
+		auto addr = hook::get_address<uint8_t*>(hook::get_module_pattern<uint8_t>("ScriptHookRDR2.dll", "48 8D 05 ? ? ? ? 4C 8D 4C 24 ?", 3)); //address of ScriptHookRDR2 Detour function ironically same address as ScriptHookV
 
 		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 	//ScriptHookRDR2.dll is not present hook into original rage::fwConfigManager::GetSizeOfPool inside the executable.
 	else
 	{
-		auto loc = hook::get_call(hook::get_pattern("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
+		auto loc = hook::get_call(hook::get_pattern<uint8_t>("BA 95 ? ? ? 41 B8 B8 0B ? ?", 0xB));  // get the address of originial function form jmp 0x41663795 -- maxloadrequestedinfo
 
 		MH_CreateHook(loc, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
 	
-	MH_CreateHook(hook::get_pattern("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
-	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
+	MH_CreateHook(hook::get_pattern<uint8_t>("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
+	MH_CreateHook(hook::get_pattern<uint8_t>("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }

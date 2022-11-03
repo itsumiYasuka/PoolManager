@@ -23,3 +23,4 @@
 /PoolManager/build/tmp/Debug
 /PoolManager/Dependencies/robin-hood-hashing
 /PoolManager/build/bin/Debug
+/PoolManager/Dependencies/ankerl/unordered_dense.h
