@@ -749,10 +749,10 @@ std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 	return value;
 }
 
-typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff);
-static GetSizeOfPool_t g_origSizeOfPool = nullptr;
+typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, __int64 _ScriptHookRDR2Stuff);
+GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, std::int64_t _ScriptHookRDR2Stuff)
+std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, __int64 _ScriptHookRDR2Stuff)
 {
 	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _ScriptHookRDR2Stuff);
 	std::string poolName = poolEntries.LookupHashString(poolHash);
@@ -780,24 +780,25 @@ static std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uin
 	return value;
 }
 
- static struct MhInit
- {
-	 MhInit()
-	 {
-		 MH_Initialize();
-	 }
- } mhInit;
+static struct MhInit
+{
+	MhInit()
+	{
+		MH_Initialize();
+	}
+} mhInit;
 
 void InitializeMod()
 {
 	cleanUpLogs();
 
-	auto registerPool = [](hook::pattern_match match, int callOffset, uint32_t hash)
+	auto registerPool = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore)
 	{
 		struct : jitasm::Frontend
 		{
 			uint32_t hash;
 			uint64_t origFn;
+			bool isAssetStore;
 
 			void InternalMain() override
 			{
@@ -813,6 +814,10 @@ void InitializeMod()
 				call(rax);
 
 				mov(rcx, rax);
+
+				if(isAssetStore)
+					add(rcx, 0x46);
+
 				mov(edx, hash);
 
 				mov(rax, (uint64_t)&SetPoolFn);
@@ -836,20 +841,29 @@ void InitializeMod()
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
-			registerPool(match, callOffset, *match.get<uint32_t>(hashOffset));
+			registerPool(match, callOffset, *match.get<uint32_t>(hashOffset), false);
 		}
 	};
 
-	auto registerNamedPools = [&](hook::pattern& patternMatch, int callOffset,  int nameOffset)
+	auto registerNamedPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
 			char* name = hook::get_address<char*>(match.get<void*>(nameOffset));
-			registerPool(match, callOffset ,joaat::generate(name));
+			registerPool(match, callOffset, joaat::generate(name), false);
 		}
 	};
 
+	auto registerAssetPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
+	{
+		for (size_t i = 0; i < patternMatch.size(); i++)
+		{
+			auto match = patternMatch.get(i);
+			char* name = hook::get_address<char*>(match.get<void*>(nameOffset));
+			registerPool(match, callOffset, joaat::generate(name), true);
+		}
+	};
 
 	// find initial pools
 	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 8B D8 E8"), 51, 1);
@@ -857,7 +871,7 @@ void InitializeMod()
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
 
 	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? 33 C9 E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B8"), 0x45, 0x3);
-	registerNamedPools(hook::pattern("48 8D 15 ? ? ? ? C6 40 E8 ? 41 B9 ? ? ? ? C6"), 0x23, 0x3);
+	registerAssetPools(hook::pattern("48 8D 15 ? ? ? ? C6 40 E8 ? 41 B9 ? ? ? ? C6"), 0x23, 0x3);
 
 	// no-op assertation to ensure our pool crash reporting is used instead
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
@@ -865,7 +879,7 @@ void InitializeMod()
 	//get the initial pools
 	if (GetModuleHandle("ScriptHookRDR2.dll") != nullptr) //If using SHV use different approach to avoid double hook
 	{
-		auto addr = hook::get_address<uint8_t*>(hook::get_module_pattern<uint8_t>("ScriptHookRDR2.dll", "48 8D 05 ? ? ? ? 4C 8D 4C 24 ?", 3)); //address of ScriptHookRDR2 Detour function ironically same address as ScriptHookV
+		auto addr = hook::get_address<uint8_t*>(hook::get_module_pattern<uint8_t>("ScriptHookRDR2.dll", "BA 10 00 00 00 48 8B CB", -0x9)); //address of ScriptHookRDR2 Detour function
 
 		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
@@ -876,7 +890,7 @@ void InitializeMod()
 
 		MH_CreateHook(loc, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
-	
+
 	MH_CreateHook(hook::get_pattern<uint8_t>("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 	MH_CreateHook(hook::get_pattern<uint8_t>("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
 
@@ -888,7 +902,7 @@ BOOL WINAPI DllMain(_In_ void* _DllHandle, _In_ unsigned long _Reason, _In_opt_ 
 {
 	switch (_Reason)
 	{
-	case  DLL_PROCESS_ATTACH: 
+	case  DLL_PROCESS_ATTACH:
 		//	MessageBoxA(nullptr, "PoolManager", "Test", MB_OK); //used for debugging
 		InitializeMod();
 		break;
