@@ -3,24 +3,7 @@
 ################################################################################
 
 /.vs
-/PoolManager/dependencies/patterns
 /PoolManager/build/tmp/Release
-/PoolManager/dependencies/minhook/include
-/PoolManager/dependencies/minhook/src/hde
-/PoolManager/dependencies/minhook/src
-/PoolManager/include/jitasm.h
 /PoolManager/build/bin/Release
-/PoolManager/Dependencies/minhook
-/PoolManager/Dependencies/__Zyan-hook/dependencies
-/PoolManager/Dependencies/__Zyan-hook/include/Zyrex/Internal
-/PoolManager/Dependencies/__Zyan-hook/include/Zyrex
-/PoolManager/Dependencies/__Zyan-hook/src
-/PoolManager/Dependencies/zyrex/Zycore
-/PoolManager/Dependencies/zyrex/Zyrex/Internal
-/PoolManager/Dependencies/zyrex/Zyrex
-/PoolManager/Dependencies/zyrex
-/PoolManager/Dependencies/detours
 /PoolManager/build/tmp/Debug
-/PoolManager/Dependencies/robin-hood-hashing
 /PoolManager/build/bin/Debug
-/PoolManager/Dependencies/ankerl/unordered_dense.h

@@ -815,8 +815,8 @@ void InitializeMod()
 
 				mov(rcx, rax);
 
-				if(isAssetStore)
-					add(rcx, 0x46);
+				if(isAssetStore == true)
+					add(rcx, 0x38);
 
 				mov(edx, hash);
 
@@ -830,6 +830,7 @@ void InitializeMod()
 		} *stub = new std::remove_pointer_t<decltype(stub)>();
 
 		stub->hash = hash;
+		stub->isAssetStore = isAssetStore;
 
 		auto call = match.get<void>(callOffset);
 		hook::set_call(&stub->origFn, call);
