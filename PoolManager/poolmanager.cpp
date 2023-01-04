@@ -56,9 +56,9 @@ private:
 	ankerl::unordered_dense::map<uint32_t, std::string_view> m_lookupList;
 };
 
-int LogPercentUsageWarning = GetPrivateProfileInt("POOL_SETTINGS", "LogPercentUsageWarning", 0, ".\\PoolManager.toml");
+BOOL LogPercentUsageWarning = GetPrivateProfileInt("POOL_SETTINGS", "LogPercentUsageWarning", FALSE, ".\\PoolManager.toml");
 int LogPercentUsageWarningAmount = GetPrivateProfileInt("POOL_SETTINGS", "LogPercentUsageWarningAmount", 50, ".\\PoolManager.toml");
-int LogInitialPoolAmounts = GetPrivateProfileInt("POOL_SETTINGS", "LogInitialPoolAmounts ", 0, ".\\PoolManager.toml");
+BOOL LogInitialPoolAmounts = GetPrivateProfileInt("POOL_SETTINGS", "LogInitialPoolAmounts ", FALSE, ".\\PoolManager.toml");
 
 static std::string LastPoolLogged;
 static int LastSizeLogged;
@@ -69,14 +69,14 @@ static void cleanUpLogs()
 {
 	if (!clearedLogs)
 	{
-		if (LogInitialPoolAmounts != 0)
+		if (LogInitialPoolAmounts != FALSE)
 		{
 			std::ofstream outfile;
 			outfile.open("PoolManager_Startup.log", std::ofstream::out | std::ofstream::trunc);
 			outfile.close();
 		}
 
-		if (LogPercentUsageWarning != 0)
+		if (LogPercentUsageWarning != FALSE)
 		{
 			std::ofstream outfile;
 			outfile.open("PoolManager_UsageWarning.log", std::ofstream::out | std::ofstream::trunc);
@@ -643,7 +643,7 @@ std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 	auto value = g_origPoolAllocate(pool, unk);
 
 
-	if (LogPercentUsageWarning != 0)
+	if (LogPercentUsageWarning == TRUE)
 	{
 		if ((float)pool->GetCount() / (float)pool->GetSize() * 100.00f > LogPercentUsageWarningAmount)
 		{
@@ -762,7 +762,7 @@ std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t d
 	if (it == g_intPools.end())
 	{
 		g_intPools.insert({ poolName, value });
-		if (LogInitialPoolAmounts != 0)
+		if (LogInitialPoolAmounts == TRUE)
 		{
 			if (poolName == poolNameHash)
 			{

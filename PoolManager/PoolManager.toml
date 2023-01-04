@@ -1,5 +1,5 @@
 [POOL_SETTINGS]
-#BOOLS: 0 = false / 1 = true
+#BOOLS: 0 = FALSE / 1 = TRUE
 
 #TYPE BOOL: This logs pool value total amounts during startup to PoolManager_Startup.log
 LogInitialPoolAmounts = 1
