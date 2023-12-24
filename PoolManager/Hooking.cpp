@@ -1,149 +1,95 @@
 #include "Hooking.h"
-//credits to @alexguirre for helping with this https://github.com/alexguirre
-namespace hook
+
+PVOID hook::AllocateFunctionStub(PVOID origin, PVOID function, uint8_t type)
 {
-	LPVOID FindPrevFreeRegion(LPVOID pAddress, LPVOID pMinAddr, DWORD dwAllocationGranularity)
-	{
-		ULONG_PTR tryAddr = (ULONG_PTR)pAddress;
-
-		// Round down to the next allocation granularity.
-		tryAddr -= tryAddr % dwAllocationGranularity;
-
-		// Start from the previous allocation granularity multiply.
-		tryAddr -= dwAllocationGranularity;
-
-		while (tryAddr >= (ULONG_PTR)pMinAddr)
-		{
-			MEMORY_BASIC_INFORMATION mbi;
-			if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
-				break;
-
-			if (mbi.State == MEM_FREE)
-				return (LPVOID)tryAddr;
-
-			if ((ULONG_PTR)mbi.AllocationBase < dwAllocationGranularity)
-				break;
-
-			tryAddr = (ULONG_PTR)mbi.AllocationBase - dwAllocationGranularity;
-		}
-
-		return NULL;
-	}
-
-	LPVOID FindNextFreeRegion(LPVOID pAddress, LPVOID pMaxAddr, DWORD dwAllocationGranularity)
-	{
-		ULONG_PTR tryAddr = (ULONG_PTR)pAddress;
-
-		// Round down to the allocation granularity.
-		tryAddr -= tryAddr % dwAllocationGranularity;
-
-		// Start from the next allocation granularity multiply.
-		tryAddr += dwAllocationGranularity;
-
-		while (tryAddr <= (ULONG_PTR)pMaxAddr)
-		{
-			MEMORY_BASIC_INFORMATION mbi;
-			if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
-				break;
-
-			if (mbi.State == MEM_FREE)
-				return (LPVOID)tryAddr;
-
-			tryAddr = (ULONG_PTR)mbi.BaseAddress + mbi.RegionSize;
-
-			// Round up to the next allocation granularity.
-			tryAddr += dwAllocationGranularity - 1;
-			tryAddr -= tryAddr % dwAllocationGranularity;
-		}
-
-		return NULL;
-	}
 	// Size of each memory block. (= page size of VirtualAlloc)
-	const uint64_t MEMORY_BLOCK_SIZE = 0x1000;
+	constexpr uint64_t MEMORY_BLOCK_SIZE = 0x1000;
 
 	// Max range for seeking a memory block. (= 1024MB)
-	const uint64_t MAX_MEMORY_RANGE = 0x40000000;
+	constexpr uint64_t MAX_MEMORY_RANGE = 0x40000000;
 
-	void* AllocateFunctionStub(void* origin, void* function, int type)
+	static void* g_currentStub = nullptr;
+	static void* g_stubMemoryStart = nullptr;
+
+	if (!g_currentStub)
 	{
-		static void* g_currentStub = nullptr;
+		SYSTEM_INFO si;
+		GetSystemInfo(&si);
 
-		static void* g_stubMemoryStart = nullptr;
+		MEM_ADDRESS_REQUIREMENTS addressReqs = { 0 };
+		MEM_EXTENDED_PARAMETER param = { 0 };
 
-		if (!g_currentStub)
-		{
-			ULONG_PTR minAddr;
-			ULONG_PTR maxAddr;
+		ULONG_PTR minAddr = (ULONG_PTR)si.lpMinimumApplicationAddress;
+		ULONG_PTR maxAddr = (ULONG_PTR)si.lpMaximumApplicationAddress;
 
-			SYSTEM_INFO si;
-			GetSystemInfo(&si);
-			minAddr = (ULONG_PTR)si.lpMinimumApplicationAddress;
-			maxAddr = (ULONG_PTR)si.lpMaximumApplicationAddress;
+		if ((ULONG_PTR)origin > MAX_MEMORY_RANGE && minAddr < (ULONG_PTR)origin - MAX_MEMORY_RANGE)
+			minAddr = (ULONG_PTR)origin - MAX_MEMORY_RANGE;
 
-			// origin ± 512MB
-			if ((ULONG_PTR)origin > MAX_MEMORY_RANGE && minAddr < (ULONG_PTR)origin - MAX_MEMORY_RANGE)
-				minAddr = (ULONG_PTR)origin - MAX_MEMORY_RANGE;
+		if (maxAddr > (ULONG_PTR)origin + MAX_MEMORY_RANGE)
+			maxAddr = (ULONG_PTR)origin + MAX_MEMORY_RANGE;
 
-			if (maxAddr > (ULONG_PTR)origin + MAX_MEMORY_RANGE)
-				maxAddr = (ULONG_PTR)origin + MAX_MEMORY_RANGE;
+		maxAddr -= MEMORY_BLOCK_SIZE - 1;
 
-			// make space for MEMORY_BLOCK_SIZE bytes.
-			maxAddr -= MEMORY_BLOCK_SIZE - 1;
+		auto start = AlignUp(minAddr, si.dwAllocationGranularity);
+		auto end = AlignDown(maxAddr, si.dwAllocationGranularity);
 
-			{
-				LPVOID pAlloc = origin;
+		addressReqs.Alignment = NULL; // any alignment
+		addressReqs.LowestStartingAddress = (PVOID)start < si.lpMinimumApplicationAddress ? si.lpMinimumApplicationAddress : (PVOID)start;
+		addressReqs.HighestEndingAddress = (PVOID)(end - 1) > si.lpMaximumApplicationAddress ? si.lpMaximumApplicationAddress : (PVOID)(end - 1);
 
-				while ((ULONG_PTR)pAlloc >= minAddr)
-				{
-					pAlloc = FindPrevFreeRegion(pAlloc, (LPVOID)minAddr, si.dwAllocationGranularity);
-					if (pAlloc == NULL)
-						break;
+		param.Type = MemExtendedParameterAddressRequirements;
+		param.Pointer = &addressReqs;
 
-					g_currentStub = VirtualAlloc(pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-					if (g_currentStub != NULL) //again thanks to alexguirre for pointing out
-						g_stubMemoryStart = g_currentStub;
-					break;
-				}
-			}
-			{
-				if (g_currentStub == NULL)  // if blocks above not fond allocate new once below 
-				{
-					LPVOID pAlloc = origin;
+		auto pVirtualAlloc2 = (decltype(&::VirtualAlloc2))GetProcAddress(GetModuleHandleW(L"kernelbase.dll"), "VirtualAlloc2");
 
-					while ((ULONG_PTR)pAlloc <= maxAddr)
-					{
-						pAlloc = FindNextFreeRegion(pAlloc, (LPVOID)maxAddr, si.dwAllocationGranularity);
-						if (pAlloc == NULL)
-							break;
-
-						g_currentStub = VirtualAlloc(pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-						if (g_currentStub != NULL)
-							g_stubMemoryStart = g_currentStub;
-						break;
-					}
-				}
-			}
-		}
-		if (!g_currentStub)
-			return nullptr;
-
-		char* code = (char*)g_currentStub;
-
-		*(uint8_t*)code = 0x48;
-		*(uint8_t*)(code + 1) = 0xb8 | type;
-
-		*(uint64_t*)(code + 2) = (uint64_t)function;
-
-		*(uint16_t*)(code + 10) = 0xE0FF | (type << 8);
-
-		*(uint64_t*)(code + 12) = 0xCCCCCCCCCCCCCCCC;
-
-		g_currentStub = (void*)((uint64_t)g_currentStub + 20);
-
-		// the page is full, allocate a new page next time a stub is needed  
-		if (((uint64_t)g_currentStub - (uint64_t)g_stubMemoryStart) >= (MEMORY_BLOCK_SIZE - 20))
-			g_currentStub = nullptr;
-
-		return code;
+		g_currentStub = pVirtualAlloc2(GetCurrentProcess(), nullptr, (SIZE_T)MEMORY_BLOCK_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE, &param, 1);
+		if (g_currentStub != NULL)
+			g_stubMemoryStart = g_currentStub;
 	}
+
+	if (!g_currentStub)
+		return nullptr;
+
+	char* code = (char*)g_currentStub;
+
+	*(uint8_t*)code = 0x48;
+	*(uint8_t*)(code + 1) = 0xb8 | type;
+
+	*(uint64_t*)(code + 2) = (uint64_t)function;
+
+	*(uint16_t*)(code + 10) = 0xE0FF | (type << 8);
+
+	*(uint64_t*)(code + 12) = 0xCCCCCCCCCCCCCCCC;
+
+	g_currentStub = (void*)((uint64_t)g_currentStub + 20);
+
+	// the page is full, allocate a new page next time a stub is needed  
+	if (((uint64_t)g_currentStub - (uint64_t)g_stubMemoryStart) >= (MEMORY_BLOCK_SIZE - 20))
+		g_currentStub = nullptr;
+
+	return code;
+}
+
+inline ULONG_PTR hook::AlignUp(ULONG_PTR stack, SIZE_T align)
+{
+	assert(align > 0 && (align & (align - 1)) == 0); // Power of 2 
+	assert(stack != 0);
+
+	auto addr = stack;
+	if (addr % align != 0)
+		addr += align - (addr % align);
+
+	assert(addr >= stack);
+	return addr;
+}
+
+inline ULONG_PTR hook::AlignDown(ULONG_PTR stack, SIZE_T align)
+{
+	assert(align > 0 && (align & (align - 1)) == 0); // Power of 2 
+	assert(stack != 0);
+
+	auto addr = stack;
+	addr &= ~(align - 1);
+	assert(addr <= stack);
+	return addr;
 }

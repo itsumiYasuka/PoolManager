@@ -52,7 +52,9 @@ namespace hook
 		FlushInstructionCache(GetCurrentProcess(), (void*)address, sizeof(value));
 	}
 
-	void* AllocateFunctionStub(void* origin, void* function, int type);
+	PVOID AllocateFunctionStub(PVOID origin, PVOID function, uint8_t type);
+	inline ULONG_PTR AlignUp(ULONG_PTR stack, SIZE_T align);
+	inline ULONG_PTR AlignDown(ULONG_PTR stack, SIZE_T align);
 
 	template<typename T>
 	struct get_func_ptr
