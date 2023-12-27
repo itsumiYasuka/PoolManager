@@ -13,9 +13,9 @@ namespace hook
 {
 	//find patterns in external module
 	template<typename T = void>
-	inline auto get_module_pattern(std::string_view moduleName, std::string_view pattern_string, ptrdiff_t offset = 0)
+	inline auto get_module_pattern(std::wstring_view moduleName, std::string_view pattern_string, ptrdiff_t offset = 0)
 	{
-		auto moduleHandle = GetModuleHandle(moduleName.data());
+		auto moduleHandle = GetModuleHandleW(moduleName.data());
 		auto match = pattern(moduleHandle, std::move(pattern_string)).get_first<T>(offset);
 		if ((moduleHandle != nullptr) && (match != nullptr)) 
 		{

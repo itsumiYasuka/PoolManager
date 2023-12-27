@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string_view>
 
 namespace joaat
 {
@@ -25,13 +26,13 @@ namespace joaat
          0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
     };
 
-    inline constexpr uint32_t _substring(const char* str, uint32_t initialHash)
+    inline constexpr uint32_t _substring(std::string_view str, uint32_t initialHash)
     {
         uint32_t hash = initialHash;
 
-        if (str != nullptr)
+        if (str.data() != nullptr)
         {
-            for (const char* it = str; *it; ++it)
+            for (const char* it = str.data(); *it; ++it)
             {
                 hash += _lookup[*it];
                 hash += (hash << 10);
@@ -42,7 +43,7 @@ namespace joaat
         return hash;
     }
 
-    inline constexpr uint32_t _finalize(const char* str, uint32_t initialHash)
+    inline constexpr uint32_t _finalize(std::string_view str, uint32_t initialHash)
     {
         uint32_t hash = _substring(str, initialHash);
 
@@ -53,42 +54,23 @@ namespace joaat
         return hash;
     }
 
-    inline constexpr uint32_t generate(const char* str)
+    inline constexpr uint32_t generate(std::string_view str)
     {
         return _finalize(str, 0);
     }
 
-    inline constexpr uint32_t generate(const char* str, uint32_t initialHash)
+    inline constexpr uint32_t generate(std::string_view str, uint32_t initialHash)
     {
         return _finalize(str, initialHash);
     }
 
-    inline constexpr uint32_t generate(const char* str, const char* concat)
+    inline constexpr uint32_t generate(std::string_view str, const char* concat)
     {
         return _finalize(concat, _substring(str, 0));
     }
 
-    inline constexpr uint32_t generate(const char* str, const char* concat, uint32_t initialHash)
+    inline constexpr uint32_t generate(std::string_view str, std::string_view concat, uint32_t initialHash)
     {
         return _finalize(concat, _substring(str, initialHash));
-    }
-    // putting this here for later use
-    inline constexpr uint32_t generate_case_sensitive(const char* str, uint32_t hash = 0)
-    {
-        if (!str)
-        {
-            return NULL;
-        }
-        while (*str)
-        {
-            hash += *str++;
-            hash += (hash << 10);
-            hash ^= (hash >> 6);
-        }
-        hash += (hash << 3);
-        hash ^= (hash >> 11);
-        hash += (hash << 15);
-
-        return hash;
     }
 }

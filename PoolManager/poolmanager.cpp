@@ -56,9 +56,9 @@ private:
 	ankerl::unordered_dense::map<uint32_t, std::string_view> m_lookupList;
 };
 
-BOOL LogPercentUsageWarning = GetPrivateProfileInt("POOL_SETTINGS", "LogPercentUsageWarning", FALSE, ".\\PoolManager.toml");
-int LogPercentUsageWarningAmount = GetPrivateProfileInt("POOL_SETTINGS", "LogPercentUsageWarningAmount", 50, ".\\PoolManager.toml");
-BOOL LogInitialPoolAmounts = GetPrivateProfileInt("POOL_SETTINGS", "LogInitialPoolAmounts ", FALSE, ".\\PoolManager.toml");
+BOOL LogPercentUsageWarning = GetPrivateProfileIntW(L"POOL_SETTINGS", L"LogPercentUsageWarning", FALSE, L".\\PoolManager.toml");
+int LogPercentUsageWarningAmount = GetPrivateProfileIntW(L"POOL_SETTINGS", L"LogPercentUsageWarningAmount", 50, L".\\PoolManager.toml");
+BOOL LogInitialPoolAmounts = GetPrivateProfileIntW(L"POOL_SETTINGS", L"LogInitialPoolAmounts ", FALSE, L".\\PoolManager.toml");
 
 static std::string LastPoolLogged;
 static int LastSizeLogged;
@@ -735,8 +735,8 @@ std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 
 		sprintf_s(buff, "%s pool crashed the game! \nPool hash: %s \nCurrent pool size: %llu \nCrash saved to PoolManager_Crash.log %s", poolName.c_str(), poolNameHash.c_str(), pool->GetSize(), extraWarning.c_str());
 		std::cout << buff;
-		HWND hWnd = FindWindow("grcWindow", NULL);
-		int msgboxID = MessageBox(hWnd, buff, "PoolManager.asi", MB_OK | MB_ICONERROR);
+		HWND hWnd = FindWindowW(L"sgaWindow", NULL);
+		int msgboxID = MessageBoxA(hWnd, buff, "PoolManager.asi", MB_OK | MB_ICONERROR);
 
 		switch (msgboxID)
 		{
@@ -878,9 +878,9 @@ void InitializeMod()
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
 
 	//get the initial pools
-	if (GetModuleHandle("ScriptHookRDR2.dll") != nullptr) //If using SHV use different approach to avoid double hook
+	if (GetModuleHandleW(L"ScriptHookRDR2.dll") != nullptr) //If using SHV use different approach to avoid double hook
 	{
-		auto addr = hook::get_address<uint8_t*>(hook::get_module_pattern<uint8_t>("ScriptHookRDR2.dll", "BA 10 00 00 00 48 8B CB", -0x9)); //address of ScriptHookRDR2 Detour function
+		auto addr = hook::get_module_pattern<uint8_t>(L"ScriptHookRDR2.dll", "49 8B D9 44 8B D2", -0x11); //address of ScriptHookRDR2 Detour function
 
 		MH_CreateHook(addr, GetSizeOfPool, (void**)&g_origSizeOfPool);
 	}
