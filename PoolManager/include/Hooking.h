@@ -21,10 +21,6 @@ namespace hook
 		{
 			return match;
 		}
-		else
-		{
-			throw std::runtime_error("pattern not found!");
-		}
 	}
 
 	template<typename AddressType>

@@ -32,9 +32,9 @@ namespace joaat
 
         if (str.data() != nullptr)
         {
-            for (const char* it = str.data(); *it; ++it)
+            for (size_t i = 0; i < str.size(); ++i)
             {
-                hash += _lookup[*it];
+                hash += _lookup[static_cast<unsigned char>(str[i])];
                 hash += (hash << 10);
                 hash ^= (hash >> 6);
             }

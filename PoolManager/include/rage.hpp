@@ -8,13 +8,13 @@ namespace rage
 	{
 	protected:
 		int8_t* m_unk; //0x0000
-		char* m_data;  //0x0008
+		int8_t* m_data;  //0x0008
 		int8_t* m_flags; //0x0010
-		int32_t m_count; //0x0018
-		uint32_t m_entrySize; //0x001C
-		int32_t m_freeList; //0x0020
+		int32_t m_size; //0x0018
+		int32_t m_datasize; //0x001C
+		int32_t m_firstList; //0x0020
 		int32_t m_lastAlloc; //0x0024
-		uint32_t m_bitCount; //0x0028
+		int32_t m_bitCount; //0x0028
 
 	private:
 		struct VirtualDtorBase
@@ -31,7 +31,7 @@ namespace rage
 				return nullptr;
 			}
 
-			return reinterpret_cast<T*>(m_data + (index * m_entrySize));
+			return reinterpret_cast<T*>(m_data + (index * m_datasize));
 		}
 
 		template<typename T>
@@ -45,7 +45,7 @@ namespace rage
 				return nullptr;
 			}
 
-			return reinterpret_cast<T*>(m_data + (index * m_entrySize));
+			return reinterpret_cast<T*>(m_data + (index * m_datasize));
 		}
 
 		size_t GetCountDirect()
@@ -56,7 +56,7 @@ namespace rage
 
 		size_t GetCount()
 		{
-			size_t count = std::count_if(m_flags, m_flags + m_count, [](int8_t flag)
+			size_t count = std::count_if(m_flags, m_flags + m_size, [](int8_t flag)
 				{
 					return (flag >= 0);
 				});
@@ -66,17 +66,17 @@ namespace rage
 
 		size_t GetSize()
 		{
-			return m_count;
+			return m_size;
 		}
 
 		size_t GetEntrySize()
 		{
-			return m_entrySize;
+			return m_datasize;
 		}
 
 		void Clear()
 		{
-			for (int i = 0; i < m_count; i++)
+			for (int i = 0; i < m_size; i++)
 			{
 				if (m_flags[i] >= 0)
 				{

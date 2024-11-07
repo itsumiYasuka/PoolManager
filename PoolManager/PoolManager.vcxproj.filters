@@ -29,6 +29,9 @@
     <ClInclude Include="include\RDR3VtableList.h">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="logger\Logger.h">
+      <Filter>logger</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Include">
@@ -39,6 +42,9 @@
     </Filter>
     <Filter Include="Dependencies\patterns">
       <UniqueIdentifier>{267ab640-5f3e-4ea1-ac09-0a1b4ed70ed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="logger">
+      <UniqueIdentifier>{654962e3-4c3f-485d-a24c-1dc65a3eb992}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

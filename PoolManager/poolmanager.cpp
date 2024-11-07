@@ -1,10 +1,13 @@
 #define NOMINMAX
+#include "logger/Logger.h"
 #include "rage.hpp"
 #include "joaat.h"
 #include <Hooking.h>
 #include <MinHook.h>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
+
 #include "Dependencies/ankerl/unordered_dense.h"
 
 #pragma comment(lib,"Dependencies/minhook/libMinHook.x64.lib")
@@ -24,7 +27,7 @@ public:
 	inline std::string LookupHashString(uint32_t hash)
 	{
 
-		if (hash == NULL)
+		if (hash == 0)
 		{
 			return "unknown";
 		}
@@ -35,23 +38,18 @@ public:
 			return std::string(it->second);
 		}
 
-		char buffer[32];
-		snprintf(buffer, std::size(buffer), "0x%08X", hash);
-		return buffer;
+		return std::format("0x{:08X}", hash);
 	}
 
-	inline std::string LookupHash(uint32_t hash)
+	static inline std::string LookupHash(uint32_t hash)
 	{
-		if (hash == NULL)
+		if (hash == 0)
 		{
 			return "unknown";
 		}
 
-		char buffer[32];
-		snprintf(buffer, std::size(buffer), "0x%08X", hash);
-		return buffer;
+		return std::format("0x{:08X}", hash);
 	}
-
 private:
 	ankerl::unordered_dense::map<uint32_t, std::string_view> m_lookupList;
 };
@@ -61,36 +59,16 @@ int LogPercentUsageWarningAmount = GetPrivateProfileIntW(L"POOL_SETTINGS", L"Log
 BOOL LogInitialPoolAmounts = GetPrivateProfileIntW(L"POOL_SETTINGS", L"LogInitialPoolAmounts ", FALSE, L".\\PoolManager.toml");
 
 static std::string LastPoolLogged;
-static int LastSizeLogged;
+static constinit int LastSizeLogged;
 
-bool clearedLogs = false;
+static constinit std::unique_ptr<Logger> PoolManager_StartupLog;
+static constinit std::unique_ptr<Logger> PoolManager_UsageWarningLog;
+static constinit std::unique_ptr<Logger> PoolManager_CrashLog;
 
-static void cleanUpLogs()
-{
-	if (!clearedLogs)
-	{
-		if (LogInitialPoolAmounts != FALSE)
-		{
-			std::ofstream outfile;
-			outfile.open("PoolManager_Startup.log", std::ofstream::out | std::ofstream::trunc);
-			outfile.close();
-		}
-
-		if (LogPercentUsageWarning != FALSE)
-		{
-			std::ofstream outfile;
-			outfile.open("PoolManager_UsageWarning.log", std::ofstream::out | std::ofstream::trunc);
-			outfile.close();
-		}
-
-		clearedLogs = true;
-	}
-}
-
-static std::map<uint32_t, rage::fwBasePool*> g_pools;
-static std::map<rage::fwBasePool*, uint32_t> g_inversePools;
-static std::map<std::string, uint32_t> g_intPools;
-static std::multimap<uint32_t, std::string> g_intPoolsMulti;
+static ankerl::unordered_dense::map<uint32_t, rage::fwBasePool*> g_pools;
+static ankerl::unordered_dense::map<rage::fwBasePool*, uint32_t> g_inversePools;
+static ankerl::unordered_dense::map<std::string, uint32_t> g_intPools;
+static std::unordered_multimap<uint32_t, std::string> g_intPoolsMulti;
 
 static const char* poolEntriesTable[] = {
 "animatedbuilding",
@@ -608,7 +586,20 @@ static const char* poolEntriesTable[] = {
 #include "RDR3VtableList.h"
 };
 
-static RageHashList poolEntries(poolEntriesTable);
+RageHashList poolEntries(poolEntriesTable);
+
+void setupLogs()
+{
+	if (LogInitialPoolAmounts != 0)
+	{
+		PoolManager_StartupLog = Logger::create_logger("PoolManager_Startup", true);
+	}
+
+	if (LogPercentUsageWarning != 0)
+	{
+		PoolManager_UsageWarningLog = Logger::create_logger("PoolManager_UsageWarning", true);
+	}
+}
 
 static rage::fwBasePool* SetPoolFn(rage::fwBasePool* pool, uint32_t hash)
 {
@@ -635,7 +626,7 @@ static void PoolDtorWrap(rage::fwBasePool* pool)
 	return g_origPoolDtor(pool);
 }
 
-typedef std::int32_t* (*PoolAllocateWrap_t)(rage::fwBasePool*, uint64_t unk);
+typedef std::int32_t* (*PoolAllocateWrap_t)(rage::fwBasePool*, uint64_t);
 PoolAllocateWrap_t g_origPoolAllocate = nullptr;
 
 std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
@@ -672,22 +663,19 @@ std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 			auto poolCount = pool->GetCount();
 			float percent = (float)poolCount / (float)poolSize;
 
-			std::ofstream outfile;
-			outfile.open("PoolManager_UsageWarning.log", std::ios_base::app);
-
 			if (LastPoolLogged == poolName && LastSizeLogged == poolSize)
 			{
-				outfile << "(count:" << poolCount << "/"
-					<< "size:" << poolSize << ") poolUsage :" << percent * 100.00f << "%" << std::endl;
+				PoolManager_UsageWarningLog->Write("(count: {} / size: {}) poolUsage: {:.2f}%", poolCount, poolSize, percent * 100.0f);
 			}
 			else
 			{
-				outfile << std::endl << "poolName: " << poolName.c_str() << std::endl
-					<< "poolHash: " << poolNameHash.c_str() << std::endl
-					<< "poolSize: " << poolSize << std::endl
-					<< "poolCount: " << poolCount << std::endl
-					<< "poolUsage: " << percent * 100.00f << "%" << std::endl
-					<< "poolPointer: " << pool << std::endl;
+				PoolManager_UsageWarningLog->Write("\npoolName: {}", poolName);
+				PoolManager_UsageWarningLog->Write("poolHash: {}", poolNameHash);
+				PoolManager_UsageWarningLog->Write("poolSize: {}", poolSize);
+				PoolManager_UsageWarningLog->Write("poolCount: {}", poolCount);
+				PoolManager_UsageWarningLog->Write("poolUsage: {:.2f}%", percent * 100.0f);
+				PoolManager_UsageWarningLog->Write("poolPointer: 0x{:X}", (uintptr_t)pool);
+
 				LastPoolLogged = poolName;
 				LastSizeLogged = poolSize;
 			}
@@ -716,14 +704,12 @@ std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 			}
 		}
 
-		std::ofstream outfile;
-		outfile.open("PoolManager_Crash.log", std::ios_base::app);
-		outfile << "poolName: " << poolName.c_str() << std::endl
-			<< "poolHash: " << poolNameHash.c_str() << std::endl
-			<< "poolSize: " << pool->GetSize() << std::endl
-			<< "poolPointer: " << pool << std::endl
-			<< std::endl;
-		outfile.close();
+		PoolManager_CrashLog = Logger::create_logger("PoolManager_Crash", true);
+
+		PoolManager_CrashLog->Write("poolName: {}", poolName);
+		PoolManager_CrashLog->Write("poolHash: {}", poolNameHash);
+		PoolManager_CrashLog->Write("poolSize: {}", pool->GetSize());
+		PoolManager_CrashLog->Write("poolPointer: 0x{:X}", (uintptr_t)pool);
 
 		char buff[256];
 		std::string extraWarning;
@@ -735,7 +721,7 @@ std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 
 		sprintf_s(buff, "%s pool crashed the game! \nPool hash: %s \nCurrent pool size: %llu \nCrash saved to PoolManager_Crash.log %s", poolName.c_str(), poolNameHash.c_str(), pool->GetSize(), extraWarning.c_str());
 		std::cout << buff;
-		HWND hWnd = FindWindowW(L"sgaWindow", NULL);
+		HWND hWnd = FindWindowW(L"sgaWindow", nullptr);
 		int msgboxID = MessageBoxA(hWnd, buff, "PoolManager.asi", MB_OK | MB_ICONERROR);
 
 		switch (msgboxID)
@@ -749,10 +735,10 @@ std::int32_t* PoolAllocateWrap(rage::fwBasePool* pool, uint64_t unk)
 	return value;
 }
 
-typedef std::uint32_t(*GetSizeOfPool_t)(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, __int64 _ScriptHookRDR2Stuff);
+typedef std::uint32_t(*GetSizeOfPool_t)(void*, std::uint32_t, std::uint32_t, __int64);
 GetSizeOfPool_t g_origSizeOfPool = nullptr;
 
-std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t defaultSize, __int64 _ScriptHookRDR2Stuff)
+std::uint32_t GetSizeOfPool(void* _this, std::uint32_t poolHash, std::uint32_t defaultSize, __int64 _ScriptHookRDR2Stuff)
 {
 	auto value = g_origSizeOfPool(_this, poolHash, defaultSize, _ScriptHookRDR2Stuff);
 	std::string poolName = poolEntries.LookupHashString(poolHash);
@@ -768,36 +754,28 @@ std::uint32_t GetSizeOfPool(VOID* _this, std::uint32_t poolHash, std::uint32_t d
 			{
 				poolName = "unknown";
 			}
-			std::ofstream outfile;
-			outfile.open("PoolManager_Startup.log", std::ios_base::app);
-			outfile << "poolName: " << poolName.c_str() << std::endl
-				<< "poolHash: " << poolNameHash.c_str() << std::endl
-				<< "poolSize: " << value << std::endl
-				<< std::endl;
+			PoolManager_StartupLog->Write("poolName: {}", poolName);
+			PoolManager_StartupLog->Write("poolHash: {}", poolNameHash);
+			PoolManager_StartupLog->Write("poolSize: {}\n", value);
 		}
 	}
 
 	return value;
 }
 
-static struct MhInit
-{
-	MhInit()
-	{
-		MH_Initialize();
-	}
-} mhInit;
-
 void InitializeMod()
 {
-	cleanUpLogs();
 
-	auto registerPool = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore)
+	setupLogs();
+
+	MH_Initialize();
+
+	auto registerPool = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore) -> void
 	{
 		struct : jitasm::Frontend
 		{
-			uint32_t hash;
 			uint64_t origFn;
+			uint32_t hash;
 			bool isAssetStore;
 
 			void InternalMain() override
@@ -837,7 +815,7 @@ void InitializeMod()
 		hook::call(call, stub->GetCode());
 	};
 
-	auto registerPools = [&](hook::pattern& patternMatch, int callOffset, int hashOffset)
+	auto registerPools = [&](hook::pattern& patternMatch, int callOffset, int hashOffset) -> void
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
@@ -846,7 +824,7 @@ void InitializeMod()
 		}
 	};
 
-	auto registerNamedPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
+	auto registerNamedPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset) -> void
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
@@ -856,7 +834,7 @@ void InitializeMod()
 		}
 	};
 
-	auto registerAssetPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
+	auto registerAssetPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset) -> void
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{

@@ -48,7 +48,7 @@ namespace hook
 
 	ptrdiff_t details::get_process_base()
 	{
-		return ptrdiff_t(GetModuleHandle(nullptr));
+		return ptrdiff_t(GetModuleHandleW(nullptr));
 	}
 
 

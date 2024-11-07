@@ -26,6 +26,7 @@
     <ClInclude Include="include\jitasm.h" />
     <ClInclude Include="include\joaat.h" />
     <ClInclude Include="include\RDR3VtableList.h" />
+    <ClInclude Include="logger\Logger.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="PoolManager.toml">
@@ -87,7 +88,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalIncludeDirectories>$(ProjectDir)include;dependencies\patterns;dependencies\minhook\include;dependencies\detours;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <DebugInformationFormat>None</DebugInformationFormat>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
