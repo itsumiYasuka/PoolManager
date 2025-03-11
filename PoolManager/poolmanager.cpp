@@ -32,10 +32,9 @@ public:
 			return "unknown";
 		}
 
-		auto it = m_lookupList.find(hash);
-		if (it != m_lookupList.end())
+		if (m_lookupList.contains(hash))
 		{
-			return std::string(it->second);
+			return std::string(m_lookupList.at(hash));
 		}
 
 		return std::format("0x{:08X}", hash);
@@ -613,11 +612,10 @@ static void(*g_origPoolDtor)(rage::fwBasePool*);
 
 static void PoolDtorWrap(rage::fwBasePool* pool)
 {
-	auto hashIt = g_inversePools.find(pool);
 
-	if (hashIt != g_inversePools.end())
+	if (g_inversePools.contains(pool))
 	{
-		auto hash = hashIt->second;
+		auto hash = g_inversePools.at(pool);
 
 		g_pools.erase(hash);
 		g_inversePools.erase(pool);
@@ -744,10 +742,9 @@ std::uint32_t GetSizeOfPool(void* _this, std::uint32_t poolHash, std::uint32_t d
 	std::string poolName = poolEntries.LookupHashString(poolHash);
 	std::string poolNameHash = poolEntries.LookupHash(poolHash);
 
-	auto it = g_intPools.find(poolName);
-	if (it == g_intPools.end())
+	if (!g_intPools.contains(poolName))
 	{
-		g_intPools.insert({ poolName, value });
+		g_intPools.try_emplace(poolName, value);
 		if (LogInitialPoolAmounts == TRUE)
 		{
 			if (poolName == poolNameHash)

@@ -16,10 +16,15 @@ namespace hook
 	inline auto get_module_pattern(std::wstring_view moduleName, std::string_view pattern_string, ptrdiff_t offset = 0)
 	{
 		auto moduleHandle = GetModuleHandleW(moduleName.data());
-		auto match = pattern(moduleHandle, std::move(pattern_string)).get_first<T>(offset);
-		if ((moduleHandle != nullptr) && (match != nullptr)) 
+
+		if (moduleHandle != nullptr)
 		{
-			return match;
+			auto match = pattern(moduleHandle, std::move(pattern_string)).get_first<T>(offset);
+
+			if (match != nullptr);
+			{
+				return match;
+			}
 		}
 	}
 
